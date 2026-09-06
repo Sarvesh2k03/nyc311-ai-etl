@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Landing zone written by the Python loader. Every column arrives as a
+      string under its canonical name; the AI schema mapper has already decided
+      what each upstream header meant, so nothing downstream knows or cares
+      which source system a column came from.
+    schema: "{{ 'raw' if target.type == 'duckdb' else env_var('BQ_RAW_DATASET', 'nyc311_raw') }}"
+    tables:
+      - name: service_requests_raw
+        description: One row per 311 service request as landed, before typing.
+        columns:
+          - name: request_id
+            description: Upstream unique key for the request.
+            data_tests: [not_null]
+          - name: _source_system
+            description: Upstream dialect the row was mapped from.
+            data_tests:
+              - accepted_values:
+                  arguments:
+                    values: ["legacy_crm", "vendor_csv", "mobile_app_v2", "partner_api"]
+          - name: _batch_id
+            description: Pipeline run that landed the row.
+            data_tests: [not_null]

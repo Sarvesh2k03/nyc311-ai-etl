@@ -1,0 +1,29 @@
+# Human-in-the-loop mapping overrides (tier 0 - highest priority).
+#
+# When the pipeline cannot resolve a column, it fails loudly and a person
+# decides. That decision is recorded here so it is applied automatically on
+# every subsequent run and never has to be made twice. This is the escape hatch
+# that keeps the pipeline runnable when the LLM is unavailable and the fuzzy
+# fallback is not confident enough.
+#
+# Overrides are reported separately from the auto-match rate - a column a human
+# mapped is not a column the pipeline mapped.
+#
+# Format:
+#   <source_system>:
+#     <source column header>: <canonical field name, or ~ for "deliberately unmapped">
+
+vendor_csv:
+  # Fuzzy scored 'Issue Category' -> complaint_type below threshold (0.60);
+  # recorded by hand after run 2024-01-15 failed the required-field guard.
+  Issue Category: complaint_type
+
+mobile_app_v2:
+  # 'reportCategory' has no lexical overlap with 'complaint_type'.
+  reportCategory: complaint_type
+
+legacy_crm:
+  # 'SR_NUMBER' -> request_id scores 0.80 on the combined fuzzy metric, just
+  # under the 0.82 floor. Rather than lower the floor for every column (which
+  # would start admitting wrong matches), the primary key is pinned by hand.
+  SR_NUMBER: request_id

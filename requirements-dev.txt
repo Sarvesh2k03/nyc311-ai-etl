@@ -1,0 +1,4 @@
+# Everything: pipeline, dashboard, and the test runner.
+-r requirements.txt
+-r requirements-pipeline.txt
+pytest==9.1.1

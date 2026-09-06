@@ -1,0 +1,16 @@
+# Pinned to a light theme: the chart palette is validated against the light
+# chart surface (#fcfcfb), so letting the viewer's OS flip the app to dark
+# would put those colors on a surface they were never checked against.
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f4f4f1"
+textColor = "#0b0b0b"
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

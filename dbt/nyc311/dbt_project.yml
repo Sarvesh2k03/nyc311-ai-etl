@@ -1,0 +1,28 @@
+name: nyc311
+version: "1.0.0"
+config-version: 2
+profile: nyc311
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Boroughs the city actually reports. Anything else is a data-quality problem,
+  # which the accepted_values test on stg_service_requests will surface.
+  # stg_service_requests uppercases borough, so these must be uppercase too.
+  valid_boroughs: ["BRONX", "BROOKLYN", "MANHATTAN", "QUEENS", "STATEN ISLAND", "UNSPECIFIED"]
+
+models:
+  nyc311:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: analytics

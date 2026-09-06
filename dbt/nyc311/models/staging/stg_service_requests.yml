@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: stg_service_requests
+    description: >
+      Typed, trimmed mirror of the landing table. Strings become timestamps and
+      floats here, so every cast is covered by the tests below rather than
+      failing silently deeper in the DAG.
+    columns:
+      - name: request_id
+        description: Upstream unique key. Not unique in this model - the same request can arrive in more than one batch.
+        data_tests:
+          - not_null
+      - name: created_at
+        description: When the request was opened. A null here means the source value failed its cast.
+        data_tests:
+          - not_null
+          - not_in_future
+      - name: closed_at
+        description: When the request was closed; null while open.
+        data_tests:
+          - not_in_future
+      - name: agency_code
+        description: Uppercased agency acronym.
+        data_tests:
+          - not_null
+      - name: complaint_type
+        description: Primary complaint category. Null here means the AI mapper failed to resolve the source column.
+        data_tests:
+          - not_null
+      - name: borough
+        description: NYC borough, uppercased.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('valid_boroughs') }}"
+              config:
+                severity: warn
+      - name: latitude
+        description: WGS84 latitude; null when the source value was blank or unparseable.
+        data_tests:
+          - within_range:
+              arguments:
+                min_value: 40.4
+                max_value: 41.0
+      - name: longitude
+        description: WGS84 longitude.
+        data_tests:
+          - within_range:
+              arguments:
+                min_value: -74.3
+                max_value: -73.6
+      - name: source_system
+        description: Upstream dialect this row was mapped from.
+        data_tests:
+          - not_null
+      - name: batch_date
+        description: Logical partition date of the pipeline run that landed the row.
+        data_tests:
+          - not_null

@@ -1,0 +1,86 @@
+{
+  "batch_date": "2024-01-12",
+  "batch_id": "backfill-2024-01-12",
+  "generated_at": "2026-09-04T06:26:18+00:00",
+  "warehouse": "duckdb",
+  "pipeline_runtime_s": 6.54,
+  "row_counts": {
+    "1_landed": 49034,
+    "2_staged": 49034,
+    "3_deduped": 49034,
+    "4_fact": 49034,
+    "5_agency_dim": 14,
+    "5_daily_mart": 316
+  },
+  "dbt_tests": {
+    "available": true,
+    "elapsed_s": 0.332,
+    "nodes_total": 44,
+    "status_counts": {
+      "pass": 43,
+      "warn": 1
+    },
+    "tests_total": 44,
+    "tests_passed": 43,
+    "tests_failed": 0,
+    "tests_warned": 1,
+    "tests_errored": 0,
+    "test_pass_rate": 0.9773,
+    "failing_tests": [
+      {
+        "test": "nyc311",
+        "status": "warn",
+        "failures": 1,
+        "message": "Got 1 result, configured to warn if >0"
+      }
+    ]
+  },
+  "ai_mapping": {
+    "batch_date": "2024-01-12",
+    "batch_id": "backfill-2024-01-12",
+    "warehouse": "duckdb",
+    "rows_read": 8900,
+    "rows_loaded": 8900,
+    "source_systems": 4,
+    "columns_total": 83,
+    "columns_auto_mapped": 60,
+    "auto_match_rate": 0.75,
+    "by_method": {
+      "override": 3,
+      "exact": 43,
+      "llm": 0,
+      "fuzzy": 17,
+      "unmapped": 20
+    },
+    "fallback_rate": 0.2698,
+    "llm_used": false,
+    "llm_errors": [
+      "TypeError: \"Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\"",
+      "TypeError: \"Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\"",
+      "TypeError: \"Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\"",
+      "TypeError: \"Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+    ],
+    "llm_latency_ms_total": 0,
+    "llm_input_tokens": 0,
+    "llm_output_tokens": 0,
+    "llm_invalid_proposals": 0,
+    "llm_low_confidence": 0,
+    "human_overrides": 3
+  },
+  "mapping_confidence": {
+    "available": true,
+    "decisions": 83,
+    "by_method": {
+      "override": 3,
+      "fuzzy": 17,
+      "exact": 43,
+      "unmapped": 20
+    },
+    "confidence_buckets": {
+      "1.00 (exact/override)": 46,
+      "0.90-0.99": 15,
+      "0.82-0.89": 2,
+      "below threshold (unmapped)": 20
+    }
+  }
+}

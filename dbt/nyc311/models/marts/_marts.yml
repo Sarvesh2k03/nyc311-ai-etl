@@ -1,0 +1,137 @@
+version: 2
+
+models:
+  - name: dim_agency
+    description: >
+      One row per responding city agency, with request volume and closure rate.
+      The agency_name is the most frequently observed spelling for that acronym
+      across all upstream systems.
+    columns:
+      - name: agency_code
+        description: Agency acronym; primary key of the dimension.
+        data_tests:
+          - not_null
+          - unique
+      - name: agency_name
+        description: Most common full name for this acronym, 'UNKNOWN' if never supplied.
+        data_tests:
+          - not_null
+      - name: total_requests
+        description: Requests attributed to this agency across all loaded batches.
+        data_tests:
+          - not_null
+      - name: closure_rate
+        description: Share of this agency's requests that have a closed_at timestamp.
+        data_tests:
+          - within_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: fct_service_requests
+    description: >
+      Request fact table, grain = one 311 service request. Incremental with
+      delete+insert on request_id, so re-landed requests update in place and the
+      pipeline is safe to re-run or backfill.
+    columns:
+      - name: request_id
+        description: Primary key, one row per service request.
+        data_tests:
+          - not_null
+          - unique
+      - name: created_at
+        description: When the request was opened.
+        data_tests:
+          - not_null
+          - not_in_future
+      - name: closed_at
+        description: When the request was closed; null while open.
+        data_tests:
+          - not_in_future
+      - name: created_date
+        description: Date grain of created_at, used as the join key for daily aggregates.
+        data_tests:
+          - not_null
+      - name: agency_code
+        description: Responding agency; foreign key into dim_agency.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_agency')
+                field: agency_code
+      - name: complaint_type
+        description: Primary complaint category.
+        data_tests:
+          - not_null
+      - name: status
+        description: Lifecycle state as reported by the agency.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Open", "Closed", "In Progress", "Assigned", "Pending", "Started", "Unspecified", "Email Sent", "Draft"]
+              config:
+                severity: warn
+      - name: is_closed
+        description: True when the request carries a closed_at timestamp.
+        data_tests:
+          - not_null
+      - name: has_invalid_timestamps
+        description: True when the source stamped closed_at before created_at; such rows keep their volume but have resolution_hours quarantined to null.
+        data_tests:
+          - not_null
+      - name: resolution_hours
+        description: >
+          Hours between created_at and closed_at. Null while the request is open,
+          and null when the source timestamps are impossible, so this column is
+          never negative and safe to average.
+        data_tests:
+          - within_range:
+              arguments:
+                min_value: 0
+                max_value: 200000
+      - name: source_system
+        description: Upstream dialect the row was mapped from.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["legacy_crm", "vendor_csv", "mobile_app_v2", "partner_api"]
+      - name: batch_date
+        description: Logical partition date of the run that landed the row.
+        data_tests:
+          - not_null
+
+  - name: agg_daily_borough_sla
+    description: >
+      Analytics-ready mart: one row per (created_date, borough, agency) with
+      volume, closure rate and resolution-time statistics. This is the table an
+      analyst or BI tool queries.
+    columns:
+      - name: created_date
+        description: Day the requests were opened.
+        data_tests:
+          - not_null
+      - name: borough
+        description: Borough of the incident, 'UNSPECIFIED' when the source left it blank.
+        data_tests:
+          - not_null
+      - name: agency_code
+        description: Responding agency.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_agency')
+                field: agency_code
+      - name: requests_opened
+        description: Requests opened in this day/borough/agency cell.
+        data_tests:
+          - not_null
+      - name: closure_rate
+        description: Share of the cell's requests that are closed.
+        data_tests:
+          - within_range:
+              arguments:
+                min_value: 0
+                max_value: 1

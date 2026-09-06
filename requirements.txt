@@ -1,0 +1,31 @@
+# Dashboard dependencies - this is what a hosting platform installs.
+#
+# Streamlit Community Cloud reads `requirements.txt` from the repository root
+# and may build on a newer Python than you expect (it picked 3.14 for this app),
+# so these pins have to be ones that work across versions rather than ones that
+# happened to work locally.
+streamlit==1.63.0
+
+# altair 5.x fails to import on Python 3.14 - its generated schema passes
+# `closed=True` to TypedDict, which that version's typing does not accept.
+# 6.x supports 3.10 through 3.14.
+altair==6.2.2
+
+pandas==3.0.5
+
+# Streamlit refuses pyarrow 25 (known segfault, apache/arrow#50471) and silently
+# downgrades it at build time. Pinning 24 keeps the installed set predictable.
+pyarrow==24.0.0
+
+requests==2.34.2
+rapidfuzz==3.14.6
+PyYAML==6.0.3
+
+# Optional, and worth having: with these installed the "Run it on live data"
+# button builds and tests the *real* dbt project against a throwaway DuckDB
+# database, so the hosted demo reports all 44 dbt tests rather than the pandas
+# equivalents. If a deploy is slow or fails to resolve, delete these three lines
+# - the app detects their absence and falls back automatically.
+duckdb==1.5.5
+dbt-core==1.12.3
+dbt-duckdb==1.11.0

@@ -1,0 +1,118 @@
+# Local Airflow for the nyc311-ai-etl pipeline.
+#
+#   docker compose -f docker/docker-compose.yaml up -d
+#   open http://localhost:8080   (airflow / airflow)
+#
+# LocalExecutor with a single Postgres metadata database - enough to run, retry
+# and backfill the DAG, without the Celery/Redis machinery a portfolio project
+# does not need. Postgres is deliberately NOT published to the host, so it can
+# never collide with a Postgres you already run on 5432.
+
+x-airflow-common: &airflow-common
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  image: nyc311-ai-etl/airflow:2.10.5
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/project/dags
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    PYTHONPATH: /opt/project
+    PROJECT_ROOT: /opt/project
+    # --- pipeline configuration -------------------------------------------
+    WAREHOUSE: ${WAREHOUSE:-duckdb}
+    DBT_TARGET: ${WAREHOUSE:-duckdb}
+    DUCKDB_PATH: /opt/project/warehouse/nyc311.duckdb
+    DBT_PROFILES_DIR: /opt/project/dbt/nyc311
+    AI_MAPPER_ENABLED: ${AI_MAPPER_ENABLED:-true}
+    AI_MAPPER_MODEL: ${AI_MAPPER_MODEL:-claude-opus-5}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    SOCRATA_APP_TOKEN: ${SOCRATA_APP_TOKEN:-}
+    # --- BigQuery (only used when WAREHOUSE=bigquery) ----------------------
+    BQ_PROJECT: ${BQ_PROJECT:-}
+    BQ_RAW_DATASET: ${BQ_RAW_DATASET:-nyc311_raw}
+    BQ_LOCATION: ${BQ_LOCATION:-US}
+    GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+  volumes:
+    # The whole project, so the DAG, the pipeline package, the dbt project and
+    # the DuckDB file are all the same files you edit on the host.
+    - ..:/opt/project
+    - airflow-logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs as root so the metadata DB and the bind-mounted directories are set up
+  # regardless of which UID the long-running services use. Overriding the
+  # entrypoint skips Airflow's fixup that registers an arbitrary UID in
+  # /etc/passwd, which is exactly why this one has to be uid 0.
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    user: "0:0"
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username airflow --password airflow \
+          --firstname Data --lastname Engineer \
+          --role Admin --email data@example.com || true
+        mkdir -p /opt/project/warehouse /opt/project/reports /opt/project/data/raw
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs \
+          /opt/project/warehouse /opt/project/reports /opt/project/data || true
+    restart: on-failure
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  airflow-db:
+  airflow-logs:

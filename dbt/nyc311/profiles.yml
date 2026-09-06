@@ -1,0 +1,21 @@
+# Both targets are real. DBT_TARGET (set from WAREHOUSE by the Makefile and the
+# DAG) picks one, so the Python loader and dbt can never disagree about where
+# the data went.
+nyc311:
+  target: "{{ env_var('DBT_TARGET', 'duckdb') }}"
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../../warehouse/nyc311.duckdb') }}"
+      schema: raw
+      threads: 4
+
+    bigquery:
+      type: bigquery
+      method: service-account
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', '') }}"
+      project: "{{ env_var('BQ_PROJECT', '') }}"
+      dataset: "{{ env_var('BQ_RAW_DATASET', 'nyc311_raw') }}"
+      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      threads: 4
+      priority: interactive

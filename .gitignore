@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+
+# Data and build artifacts - reproducible by running the pipeline.
+data/raw/*
+data/canonical/*
+warehouse/*.duckdb
+logs/*
+dbt/nyc311/target/
+dbt/nyc311/dbt_packages/
+dbt/nyc311/logs/
+dbt/nyc311/.user.yml
+secrets/
+
+# Reports are kept: they are the evidence of a real run.
+!reports/
