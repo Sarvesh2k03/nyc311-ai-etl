@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Sarvesh2k03/nyc311-ai-etl/actions/workflows/ci.yml/badge.svg)](https://github.com/Sarvesh2k03/nyc311-ai-etl/actions/workflows/ci.yml)
 
-**[▶ Live demo](https://nyc311-ai-etl.streamlit.app)** — press one button and the pipeline runs on complaints filed in NYC in the last few hours.
+**[▶ Live demo](YOUR-ACTUAL-URL)** — press one button and the pipeline runs on complaints filed in NYC in the last few hours.
 
 An AI-augmented, incremental batch ELT pipeline: **NYC 311 Open Data → AI-assisted schema mapping → cloud data warehouse → dbt → analytics marts**, orchestrated on a schedule by **Apache Airflow**.
 
